@@ -28,3 +28,13 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules
+
+- Public reads (projects, site settings) go through GET server functions in `src/lib/projects.functions.ts` using a per-request publishable client, so pages SSR with real data.
+- Admin writes go through server functions with `requireSupabaseAuth` plus an explicit `has_role(..., 'admin')` check; RLS enforces the same rule as a second layer.
+- Admin access comes only from `public.user_roles`; the first auth user created is made admin by a DB trigger, and public sign-up is disabled in auth settings.
+- Project cover images live in a private storage bucket; `projects.image_url` stores the storage path and reads return long-lived signed URLs built on `VITE_SUPABASE_URL` (public buckets are blocked by workspace policy).
+- Images are uploaded from the browser only at submit time (admin-only storage RLS), and replaced/deleted images are removed server-side.
+- The Discord invite link is a single editable row in `public.site_settings`, not a constant.
+- Public pages wrap content in `SiteLayout`; the admin area under `/_authenticated/admin` has its own shell.
