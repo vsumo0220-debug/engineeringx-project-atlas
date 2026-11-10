@@ -18,6 +18,9 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
 import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
+import { Route as AuthenticatedAdminProjectsNewRouteImport } from './routes/_authenticated/admin.projects.new'
+import { Route as AuthenticatedAdminProjectsProjectIdEditRouteImport } from './routes/_authenticated/admin.projects.$projectId.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -63,6 +66,24 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminProjectsNewRoute =
+  AuthenticatedAdminProjectsNewRouteImport.update({
+    id: '/projects/new',
+    path: '/projects/new',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminProjectsProjectIdEditRoute =
+  AuthenticatedAdminProjectsProjectIdEditRouteImport.update({
+    id: '/projects/$projectId/edit',
+    path: '/projects/$projectId/edit',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -72,7 +93,10 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/admin/projects/new': typeof AuthenticatedAdminProjectsNewRoute
+  '/admin/projects/$projectId/edit': typeof AuthenticatedAdminProjectsProjectIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -81,7 +105,10 @@ export interface FileRoutesByTo {
   '/join': typeof JoinRoute
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects': typeof ProjectsIndexRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
+  '/admin/projects/new': typeof AuthenticatedAdminProjectsNewRoute
+  '/admin/projects/$projectId/edit': typeof AuthenticatedAdminProjectsProjectIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,7 +120,10 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/projects/$projectId': typeof ProjectsProjectIdRoute
   '/projects/': typeof ProjectsIndexRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/admin/projects/new': typeof AuthenticatedAdminProjectsNewRoute
+  '/_authenticated/admin/projects/$projectId/edit': typeof AuthenticatedAdminProjectsProjectIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -105,7 +135,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/projects/$projectId'
     | '/projects/'
+    | '/admin/settings'
     | '/admin/'
+    | '/admin/projects/new'
+    | '/admin/projects/$projectId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -114,7 +147,10 @@ export interface FileRouteTypes {
     | '/join'
     | '/projects/$projectId'
     | '/projects'
+    | '/admin/settings'
     | '/admin'
+    | '/admin/projects/new'
+    | '/admin/projects/$projectId/edit'
   id:
     | '__root__'
     | '/'
@@ -125,7 +161,10 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/projects/$projectId'
     | '/projects/'
+    | '/_authenticated/admin/settings'
     | '/_authenticated/admin/'
+    | '/_authenticated/admin/projects/new'
+    | '/_authenticated/admin/projects/$projectId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -203,15 +242,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/projects/new': {
+      id: '/_authenticated/admin/projects/new'
+      path: '/projects/new'
+      fullPath: '/admin/projects/new'
+      preLoaderRoute: typeof AuthenticatedAdminProjectsNewRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/projects/$projectId/edit': {
+      id: '/_authenticated/admin/projects/$projectId/edit'
+      path: '/projects/$projectId/edit'
+      fullPath: '/admin/projects/$projectId/edit'
+      preLoaderRoute: typeof AuthenticatedAdminProjectsProjectIdEditRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedAdminProjectsNewRoute: typeof AuthenticatedAdminProjectsNewRoute
+  AuthenticatedAdminProjectsProjectIdEditRoute: typeof AuthenticatedAdminProjectsProjectIdEditRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedAdminProjectsNewRoute: AuthenticatedAdminProjectsNewRoute,
+  AuthenticatedAdminProjectsProjectIdEditRoute:
+    AuthenticatedAdminProjectsProjectIdEditRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =
