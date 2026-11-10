@@ -8,6 +8,13 @@
       "when": 1794286497460,
       "tag": "0000_engineeringx_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794286527060,
+      "tag": "0001_project_images_policies",
+      "breakpoints": true
     }
   ]
 }
