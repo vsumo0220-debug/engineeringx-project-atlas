@@ -25,7 +25,7 @@ export type ProjectFormInitial = {
   created_at?: string;
 };
 
-type Errors = Partial<Record<keyof ProjectInput, string>>;
+type Errors = { [K in keyof ProjectInput]?: string | undefined };
 
 export function ProjectForm({
   initial,
@@ -283,8 +283,8 @@ function Field({
   label: string;
   htmlFor: string;
   required?: boolean;
-  error?: string;
-  hint?: string;
+  error?: string | undefined;
+  hint?: string | undefined;
   children: React.ReactNode;
 }) {
   return (

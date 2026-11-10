@@ -47,7 +47,7 @@ const getPublicClient = createServerOnlyFn((): Db => {
 /** Signed URLs are built against the browser-reachable backend URL. */
 function toBrowserUrl(signedUrl: string): string {
   const idx = signedUrl.indexOf("/storage/v1/");
-  const base = (import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const base = (import.meta.env['VITE_SUPABASE_URL'] ?? "").replace(/\/+$/, "");
   return idx >= 0 && base ? base + signedUrl.slice(idx) : signedUrl;
 }
 
@@ -80,7 +80,7 @@ async function assertAdmin(supabase: Db, userId: string) {
 /* ---------- Public reads ---------- */
 
 export const listProjects = createServerFn({ method: "GET" })
-  .inputValidator((input: { limit?: number } | undefined) =>
+  .inputValidator((input: { limit?: number | undefined } | undefined) =>
     z.object({ limit: z.number().int().min(1).max(100).optional() }).parse(input ?? {}),
   )
   .handler(async ({ data }) => {
