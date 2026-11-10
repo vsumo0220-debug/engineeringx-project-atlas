@@ -57,7 +57,7 @@ export function Goals() {
           {GOALS.map((goal, i) => (
             <li
               key={goal.title}
-              className="border-b py-8 sm:px-6 sm:odd:pl-0 lg:border-b-0 lg:border-r lg:px-6 lg:first:pl-0 lg:last:border-r-0"
+              className="border-b py-8 sm:pr-6 sm:even:pl-6 lg:border-b-0 lg:border-r lg:pl-6 lg:first:pl-0 lg:last:border-r-0"
             >
               <span className="eyebrow text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
               <h3 className="mt-4 text-lg font-semibold tracking-tight">{goal.title}</h3>
