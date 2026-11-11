@@ -1,80 +1,48 @@
-import { createServerFn, createServerOnlyFn } from "@tanstack/react-start";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { projectInputSchema, projectUpdateSchema, siteSettingsSchema } from "./project-schema";
 import { DEFAULT_DISCORD_URL } from "./site";
+import { assertAdmin, getPublicClient, removeMedia, signPaths, type Db } from "./backend";
 
-export const PROJECT_IMAGES_BUCKET = "project-images";
-const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365;
+export { MEDIA_BUCKET as PROJECT_IMAGES_BUCKET } from "./backend";
+
+export type ProjectImage = { path: string; src: string };
 
 export type Project = {
   id: string;
   title: string;
   short_description: string;
   full_description: string;
-  image_path: string;
+  category: string | null;
+  status: string;
+  team: string | null;
+  technologies: string[];
+  /** Ordered gallery; images[0] is the main image. */
+  images: ProjectImage[];
   image_src: string;
   youtube_url: string | null;
+  demo_url: string | null;
   github_url: string | null;
   created_at: string;
   updated_at: string;
 };
 
-type Db = SupabaseClient<Database>;
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
-const getPublicClient = createServerOnlyFn((): Db => {
-  const url = process.env["SUPABASE_URL"];
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
-  if (!url || !key) throw new Error("The database connection is not configured.");
-  return createClient<Database>(url, key, {
-    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-    global: {
-      fetch: (input, init) => {
-        const headers = new Headers(init?.headers);
-        if (key.startsWith("sb_") && headers.get("Authorization") === `Bearer ${key}`) {
-          headers.delete("Authorization");
-        }
-        headers.set("apikey", key);
-        return fetch(input, { ...init, headers });
-      },
-    },
-  });
-});
-
-/** Signed URLs are built against the browser-reachable backend URL. */
-function toBrowserUrl(signedUrl: string): string {
-  const idx = signedUrl.indexOf("/storage/v1/");
-  const base = (import.meta.env['VITE_SUPABASE_URL'] ?? "").replace(/\/+$/, "");
-  return idx >= 0 && base ? base + signedUrl.slice(idx) : signedUrl;
+function galleryPaths(row: ProjectRow): string[] {
+  return row.images.length > 0 ? row.images : row.image_url ? [row.image_url] : [];
 }
 
 async function withImages(client: Db, rows: ProjectRow[]): Promise<Project[]> {
   if (rows.length === 0) return [];
-  const { data } = await client.storage
-    .from(PROJECT_IMAGES_BUCKET)
-    .createSignedUrls(
-      rows.map((r) => r.image_url),
-      SIGNED_URL_TTL_SECONDS,
-    );
-  const byPath = new Map<string, string>();
-  for (const item of data ?? []) {
-    if (item.path && item.signedUrl) byPath.set(item.path, toBrowserUrl(item.signedUrl));
-  }
-  return rows.map(({ image_url, ...rest }) => ({
-    ...rest,
-    image_path: image_url,
-    image_src: byPath.get(image_url) ?? "",
-  }));
-}
-
-async function assertAdmin(supabase: Db, userId: string) {
-  const { data, error } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (error || data !== true) {
-    throw new Error("Forbidden: administrator access is required.");
-  }
+  const urls = await signPaths(client, rows.flatMap(galleryPaths));
+  return rows.map(({ image_url: _main, images: _images, ...rest }) => {
+    const row = rows.find((r) => r.id === rest.id)!;
+    const images = galleryPaths(row).map((path) => ({ path, src: urls.get(path) ?? "" }));
+    return { ...rest, images, image_src: images[0]?.src ?? "" };
+  });
 }
 
 /* ---------- Public reads ---------- */
@@ -105,8 +73,41 @@ export const getProject = createServerFn({ method: "GET" })
 
 export const getSiteSettings = createServerFn({ method: "GET" }).handler(async () => {
   const client = getPublicClient();
-  const { data } = await client.from("site_settings").select("discord_url").eq("id", 1).maybeSingle();
-  return { discord_url: data?.discord_url || DEFAULT_DISCORD_URL };
+  const { data } = await client
+    .from("site_settings")
+    .select("discord_url, active_members, contact_email")
+    .eq("id", 1)
+    .maybeSingle();
+  return {
+    discord_url: data?.discord_url || DEFAULT_DISCORD_URL,
+    active_members: data?.active_members ?? null,
+    contact_email: data?.contact_email ?? null,
+  };
+});
+
+export type ImpactStats = {
+  activeMembers: number | null;
+  completedProjects: number;
+  inDevelopment: number;
+  fieldsExplored: number;
+};
+
+/** Every number comes from real data: project statuses/categories and the admin-entered member count. */
+export const getImpactStats = createServerFn({ method: "GET" }).handler(async (): Promise<ImpactStats> => {
+  const client = getPublicClient();
+  const [{ data: rows, error }, { data: settings }] = await Promise.all([
+    client.from("projects").select("status, category"),
+    client.from("site_settings").select("active_members").eq("id", 1).maybeSingle(),
+  ]);
+  if (error) throw new Error("Could not load statistics.");
+  const list = rows ?? [];
+  const fields = new Set(list.map((r) => r.category?.trim().toLowerCase()).filter(Boolean));
+  return {
+    activeMembers: settings?.active_members ?? null,
+    completedProjects: list.filter((r) => r.status === "completed").length,
+    inDevelopment: list.filter((r) => r.status === "in_progress").length,
+    fieldsExplored: fields.size,
+  };
 });
 
 /* ---------- Admin writes (authenticated + admin role, enforced again by RLS) ---------- */
@@ -116,10 +117,9 @@ export const createProject = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => projectInputSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { image_path, ...rest } = data;
     const { data: row, error } = await context.supabase
       .from("projects")
-      .insert({ ...rest, image_url: image_path })
+      .insert({ ...data, image_url: data.images[0]! })
       .select("id")
       .single();
     if (error) throw new Error("Could not publish the project. Please try again.");
@@ -131,23 +131,26 @@ export const updateProject = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => projectUpdateSchema.parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const { id, image_path, ...rest } = data;
+    const { id, ...rest } = data;
     const { data: existing } = await context.supabase
       .from("projects")
-      .select("image_url")
+      .select("image_url, images")
       .eq("id", id)
       .maybeSingle();
     if (!existing) throw new Error("This project no longer exists.");
 
     const { error } = await context.supabase
       .from("projects")
-      .update({ ...rest, image_url: image_path })
+      .update({ ...rest, image_url: rest.images[0]! })
       .eq("id", id);
     if (error) throw new Error("Could not save changes. Please try again.");
 
-    if (existing.image_url !== image_path) {
-      await context.supabase.storage.from(PROJECT_IMAGES_BUCKET).remove([existing.image_url]);
-    }
+    const keep = new Set(rest.images);
+    const old = new Set([existing.image_url, ...existing.images]);
+    await removeMedia(
+      context.supabase,
+      [...old].filter((p) => !keep.has(p)),
+    );
     return { id };
   });
 
@@ -158,14 +161,12 @@ export const deleteProject = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { data: existing } = await context.supabase
       .from("projects")
-      .select("image_url")
+      .select("image_url, images")
       .eq("id", data.id)
       .maybeSingle();
     const { error } = await context.supabase.from("projects").delete().eq("id", data.id);
     if (error) throw new Error("Could not delete the project. Please try again.");
-    if (existing?.image_url) {
-      await context.supabase.storage.from(PROJECT_IMAGES_BUCKET).remove([existing.image_url]);
-    }
+    if (existing) await removeMedia(context.supabase, [...new Set([existing.image_url, ...existing.images])]);
     return { ok: true };
   });
 
@@ -176,7 +177,11 @@ export const updateSiteSettings = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("site_settings")
-      .update({ discord_url: data.discord_url })
+      .update({
+        discord_url: data.discord_url,
+        active_members: data.active_members,
+        contact_email: data.contact_email,
+      })
       .eq("id", 1);
     if (error) throw new Error("Could not save settings. Please try again.");
     return { ok: true };
