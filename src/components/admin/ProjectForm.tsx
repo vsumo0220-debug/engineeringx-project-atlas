@@ -18,14 +18,19 @@ export type ProjectFormInitial = {
   title: string;
   short_description: string;
   full_description: string;
-  image_path: string;
+  images: { path: string; src: string }[];
   image_src: string;
   youtube_url: string | null;
   github_url: string | null;
+  category?: string | null;
+  status?: string;
+  team?: string | null;
+  technologies?: string[];
+  demo_url?: string | null;
   created_at?: string;
 };
 
-type Errors = { [K in keyof ProjectInput]?: string | undefined };
+type Errors = Partial<Record<keyof ProjectInput | "image_path", string | undefined>>;
 
 export function ProjectForm({
   initial,
@@ -59,6 +64,7 @@ export function ProjectForm({
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  const existingPaths = (initial?.images ?? []).map((i) => i.path);
   const imageSrc = filePreview ?? initial?.image_src ?? "";
   const previewDate = useMemo(() => initial?.created_at ?? new Date().toISOString(), [initial?.created_at]);
 
@@ -84,15 +90,23 @@ export function ProjectForm({
       title,
       short_description: shortDescription,
       full_description: fullDescription,
-      image_path: file ? "pending-upload" : (initial?.image_path ?? ""),
+      category: initial?.category ?? null,
+      status: (initial?.status ?? "completed") as ProjectInput["status"],
+      team: initial?.team ?? null,
+      technologies: initial?.technologies ?? [],
+      images: file
+        ? ["pending-upload", ...existingPaths.slice(1)]
+        : existingPaths,
       youtube_url: youtubeUrl,
+      demo_url: initial?.demo_url ?? null,
       github_url: githubUrl,
     };
     const parsed = projectInputSchema.safeParse(draft);
     if (!parsed.success) {
       const next: Errors = {};
       for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as keyof ProjectInput;
+        const raw = issue.path[0] as keyof ProjectInput;
+        const key = raw === "images" ? "image_path" : raw;
         if (!next[key]) next[key] = issue.message;
       }
       setErrors(next);
@@ -104,7 +118,7 @@ export function ProjectForm({
 
     let uploadedPath: string | null = null;
     try {
-      let imagePath = initial?.image_path ?? "";
+      let imagePath = existingPaths[0] ?? "";
       if (file) {
         const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
         const path = `${crypto.randomUUID()}.${ext || "jpg"}`;
@@ -115,7 +129,7 @@ export function ProjectForm({
         uploadedPath = path;
         imagePath = path;
       }
-      await onSubmit({ ...parsed.data, image_path: imagePath });
+      await onSubmit({ ...parsed.data, images: [imagePath, ...existingPaths.slice(1)] });
     } catch (err) {
       if (uploadedPath) await supabase.storage.from(BUCKET).remove([uploadedPath]);
       setFormError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
