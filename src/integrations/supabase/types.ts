@@ -14,36 +14,198 @@ export type Database = {
   }
   public: {
     Tables: {
-      projects: {
+      contact_inquiries: {
+        Row: {
+          category: string
+          created_at: string
+          email: string
+          full_name: string
+          handled: boolean
+          id: string
+          message: string
+          organization: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          email: string
+          full_name: string
+          handled?: boolean
+          id?: string
+          message: string
+          organization?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          handled?: boolean
+          id?: string
+          message?: string
+          organization?: string | null
+        }
+        Relationships: []
+      }
+      membership_applications: {
+        Row: {
+          age_or_year: string
+          created_at: string
+          email: string
+          full_name: string
+          handled: boolean
+          id: string
+          interests: string[]
+          motivation: string
+          previous_projects: string | null
+          skills: string | null
+        }
+        Insert: {
+          age_or_year: string
+          created_at?: string
+          email: string
+          full_name: string
+          handled?: boolean
+          id?: string
+          interests?: string[]
+          motivation: string
+          previous_projects?: string | null
+          skills?: string | null
+        }
+        Update: {
+          age_or_year?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          handled?: boolean
+          id?: string
+          interests?: string[]
+          motivation?: string
+          previous_projects?: string | null
+          skills?: string | null
+        }
+        Relationships: []
+      }
+      news_posts: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          id: string
+          image_path: string | null
+          published_at: string
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          published_at?: string
+          summary: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          published_at?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partners: {
         Row: {
           created_at: string
+          description: string | null
+          id: string
+          kind: string
+          logo_path: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: string
+          logo_path?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          kind?: string
+          logo_path?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          category: string | null
+          created_at: string
+          demo_url: string | null
           full_description: string
           github_url: string | null
           id: string
           image_url: string
+          images: string[]
           short_description: string
+          status: string
+          team: string | null
+          technologies: string[]
           title: string
           updated_at: string
           youtube_url: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string
+          demo_url?: string | null
           full_description: string
           github_url?: string | null
           id?: string
           image_url: string
+          images?: string[]
           short_description: string
+          status?: string
+          team?: string | null
+          technologies?: string[]
           title: string
           updated_at?: string
           youtube_url?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string
+          demo_url?: string | null
           full_description?: string
           github_url?: string | null
           id?: string
           image_url?: string
+          images?: string[]
           short_description?: string
+          status?: string
+          team?: string | null
+          technologies?: string[]
           title?: string
           updated_at?: string
           youtube_url?: string | null
@@ -52,16 +214,22 @@ export type Database = {
       }
       site_settings: {
         Row: {
+          active_members: number | null
+          contact_email: string | null
           discord_url: string
           id: number
           updated_at: string
         }
         Insert: {
+          active_members?: number | null
+          contact_email?: string | null
           discord_url?: string
           id?: number
           updated_at?: string
         }
         Update: {
+          active_members?: number | null
+          contact_email?: string | null
           discord_url?: string
           id?: number
           updated_at?: string

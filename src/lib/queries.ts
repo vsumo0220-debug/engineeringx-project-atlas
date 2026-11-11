@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import { getProject, getSiteSettings, listProjects } from "./projects.functions";
+import { getImpactStats, getProject, getSiteSettings, listProjects } from "./projects.functions";
+import { getNewsPost, listNews, listPartners } from "./content.functions";
 
 export const projectsQuery = (limit?: number) =>
   queryOptions({
@@ -18,6 +19,30 @@ export const siteSettingsQuery = () =>
     queryKey: ["site-settings"],
     queryFn: () => getSiteSettings(),
     staleTime: 60_000,
+  });
+
+export const impactQuery = () =>
+  queryOptions({
+    queryKey: ["impact"],
+    queryFn: () => getImpactStats(),
+  });
+
+export const newsQuery = (limit?: number) =>
+  queryOptions({
+    queryKey: ["news", { limit: limit ?? null }],
+    queryFn: () => listNews({ data: { limit } }),
+  });
+
+export const newsPostQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["news-post", id],
+    queryFn: () => getNewsPost({ data: { id } }),
+  });
+
+export const partnersQuery = () =>
+  queryOptions({
+    queryKey: ["partners"],
+    queryFn: () => listPartners(),
   });
 
 export function formatDate(iso: string) {
