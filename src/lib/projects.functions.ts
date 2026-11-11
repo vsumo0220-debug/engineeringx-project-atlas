@@ -38,8 +38,8 @@ function galleryPaths(row: ProjectRow): string[] {
 async function withImages(client: Db, rows: ProjectRow[]): Promise<Project[]> {
   if (rows.length === 0) return [];
   const urls = await signPaths(client, rows.flatMap(galleryPaths));
-  return rows.map(({ image_url: _main, images: _images, ...rest }) => {
-    const row = rows.find((r) => r.id === rest.id)!;
+  return rows.map((row) => {
+    const { image_url: _main, images: _paths, ...rest } = row;
     const images = galleryPaths(row).map((path) => ({ path, src: urls.get(path) ?? "" }));
     return { ...rest, images, image_src: images[0]?.src ?? "" };
   });
