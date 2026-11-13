@@ -7,6 +7,7 @@ const valid = {
   short_description: "A small robot that follows a track.",
   full_description: "Details here.",
   images: ["abc.jpg"],
+  status: "completed",
 };
 
 describe("project form rules", () => {
