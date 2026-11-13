@@ -2,12 +2,14 @@ import { Github, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { parseYouTubeId } from "@/lib/links";
 import { formatDate } from "@/lib/queries";
+import { ImageSlideshow } from "./ImageSlideshow";
 
 export type ProjectView = {
   title: string;
   short_description: string;
   full_description: string;
   image_src: string;
+  images?: { src: string }[];
   youtube_url: string | null;
   github_url: string | null;
   created_at: string;
@@ -47,9 +49,12 @@ export function ProjectDetail({ project }: { project: ProjectView }) {
         )}
       </header>
 
-      {project.image_src && (
-        <div className="mt-10 overflow-hidden rounded-md border bg-muted">
-          <img src={project.image_src} alt={project.title} className="max-h-[560px] w-full object-cover" />
+      {(project.images?.length || project.image_src) && (
+        <div className="mt-10">
+          <ImageSlideshow
+            alt={project.title}
+            images={project.images?.length ? project.images.map((i) => i.src) : [project.image_src]}
+          />
         </div>
       )}
 
