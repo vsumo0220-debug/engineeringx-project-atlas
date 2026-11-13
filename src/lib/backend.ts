@@ -34,12 +34,17 @@ function toBrowserUrl(signedUrl: string): string {
   return idx >= 0 && base ? base + signedUrl.slice(idx) : signedUrl;
 }
 
-/** Returns a path -> signed URL map for every non-empty path. */
-export async function signPaths(client: Db, paths: (string | null | undefined)[]): Promise<Map<string, string>> {
+/**
+ * Returns a path -> signed URL map for every non-empty path.
+ * The bucket has no visitor read rule, so links are signed server-side with the privileged client;
+ * callers only pass paths already read from published rows.
+ */
+export async function signPaths(paths: (string | null | undefined)[]): Promise<Map<string, string>> {
   const unique = [...new Set(paths.filter((p): p is string => !!p))];
   const map = new Map<string, string>();
   if (unique.length === 0) return map;
-  const { data } = await client.storage.from(MEDIA_BUCKET).createSignedUrls(unique, SIGNED_URL_TTL_SECONDS);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin.storage.from(MEDIA_BUCKET).createSignedUrls(unique, SIGNED_URL_TTL_SECONDS);
   for (const item of data ?? []) {
     if (item.path && item.signedUrl) map.set(item.path, toBrowserUrl(item.signedUrl));
   }

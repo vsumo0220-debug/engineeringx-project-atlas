@@ -4,7 +4,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { projectInputSchema, projectUpdateSchema, siteSettingsSchema } from "./project-schema";
 import { DEFAULT_DISCORD_URL } from "./site";
-import { assertAdmin, getPublicClient, removeMedia, signPaths, type Db } from "./backend";
+import { assertAdmin, getPublicClient, removeMedia, signPaths } from "./backend";
 
 export { MEDIA_BUCKET as PROJECT_IMAGES_BUCKET } from "./backend";
 
@@ -35,9 +35,9 @@ function galleryPaths(row: ProjectRow): string[] {
   return row.images.length > 0 ? row.images : row.image_url ? [row.image_url] : [];
 }
 
-async function withImages(client: Db, rows: ProjectRow[]): Promise<Project[]> {
+async function withImages(rows: ProjectRow[]): Promise<Project[]> {
   if (rows.length === 0) return [];
-  const urls = await signPaths(client, rows.flatMap(galleryPaths));
+  const urls = await signPaths(rows.flatMap(galleryPaths));
   return rows.map((row) => {
     const { image_url: _main, images: _paths, ...rest } = row;
     const images = galleryPaths(row).map((path) => ({ path, src: urls.get(path) ?? "" }));
@@ -57,7 +57,7 @@ export const listProjects = createServerFn({ method: "GET" })
     if (data.limit) query = query.limit(data.limit);
     const { data: rows, error } = await query;
     if (error) throw new Error("Could not load projects.");
-    return withImages(client, rows ?? []);
+    return withImages(rows ?? []);
   });
 
 export const getProject = createServerFn({ method: "GET" })
@@ -67,21 +67,17 @@ export const getProject = createServerFn({ method: "GET" })
     const { data: row, error } = await client.from("projects").select("*").eq("id", data.id).maybeSingle();
     if (error) throw new Error("Could not load this project.");
     if (!row) return null;
-    const [project] = await withImages(client, [row]);
+    const [project] = await withImages([row]);
     return project ?? null;
   });
 
 export const getSiteSettings = createServerFn({ method: "GET" }).handler(async () => {
   const client = getPublicClient();
-  const { data } = await client
-    .from("site_settings")
-    .select("discord_url, active_members, contact_email")
-    .eq("id", 1)
-    .maybeSingle();
+  const { data: rows } = await client.rpc("get_public_site_settings");
+  const data = rows?.[0];
   return {
     discord_url: data?.discord_url || DEFAULT_DISCORD_URL,
     active_members: data?.active_members ?? null,
-    contact_email: data?.contact_email ?? null,
   };
 });
 
@@ -97,13 +93,13 @@ export const getImpactStats = createServerFn({ method: "GET" }).handler(async ()
   const client = getPublicClient();
   const [{ data: rows, error }, { data: settings }] = await Promise.all([
     client.from("projects").select("status, category"),
-    client.from("site_settings").select("active_members").eq("id", 1).maybeSingle(),
+    client.rpc("get_public_site_settings"),
   ]);
   if (error) throw new Error("Could not load statistics.");
   const list = rows ?? [];
   const fields = new Set(list.map((r) => r.category?.trim().toLowerCase()).filter(Boolean));
   return {
-    activeMembers: settings?.active_members ?? null,
+    activeMembers: settings?.[0]?.active_members ?? null,
     completedProjects: list.filter((r) => r.status === "completed").length,
     inDevelopment: list.filter((r) => r.status === "in_progress").length,
     fieldsExplored: fields.size,
