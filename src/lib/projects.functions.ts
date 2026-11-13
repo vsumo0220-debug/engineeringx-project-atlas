@@ -4,7 +4,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { projectInputSchema, projectUpdateSchema, siteSettingsSchema } from "./project-schema";
 import { DEFAULT_DISCORD_URL } from "./site";
-import { assertAdmin, getPublicClient, removeMedia, signPaths, type Db } from "./backend";
+import { assertAdmin, getPublicClient, removeMedia, signPaths } from "./backend";
 
 export { MEDIA_BUCKET as PROJECT_IMAGES_BUCKET } from "./backend";
 
