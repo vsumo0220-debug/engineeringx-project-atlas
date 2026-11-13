@@ -80,12 +80,10 @@ export function ProjectForm({
       }
       added.push({ key: crypto.randomUUID(), file: f, src: URL.createObjectURL(f) });
     }
-    setItems((prev) => {
-      const room = MAX_PROJECT_IMAGES - prev.length;
-      if (added.length > room) problem = `Up to ${MAX_PROJECT_IMAGES} images per project`;
-      added.slice(Math.max(room, 0)).forEach((i) => URL.revokeObjectURL(i.src));
-      return [...prev, ...added.slice(0, Math.max(room, 0))];
-    });
+    const room = Math.max(MAX_PROJECT_IMAGES - items.length, 0);
+    if (added.length > room) problem = `Up to ${MAX_PROJECT_IMAGES} images per project`;
+    added.slice(room).forEach((i) => URL.revokeObjectURL(i.src));
+    setItems((prev) => [...prev, ...added.slice(0, room)]);
     setErrors((e) => ({ ...e, image_path: problem }));
   }
 
