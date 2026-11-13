@@ -37,7 +37,7 @@ export const listNews = createServerFn({ method: "GET" })
     if (data.limit) query = query.limit(data.limit);
     const { data: rows, error } = await query;
     if (error) throw new Error("Could not load news.");
-    const urls = await signPaths(client, (rows ?? []).map((r) => r.image_path));
+    const urls = await signPaths((rows ?? []).map((r) => r.image_path));
     return (rows ?? []).map((r) => ({ ...r, image_src: r.image_path ? (urls.get(r.image_path) ?? "") : "" }));
   });
 
@@ -52,7 +52,7 @@ export const getNewsPost = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw new Error("Could not load this update.");
     if (!row) return null;
-    const urls = await signPaths(client, [row.image_path]);
+    const urls = await signPaths([row.image_path]);
     return { ...row, image_src: row.image_path ? (urls.get(row.image_path) ?? "") : "" };
   });
 
@@ -119,7 +119,7 @@ export const listPartners = createServerFn({ method: "GET" }).handler(async (): 
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw new Error("Could not load partners.");
-  const urls = await signPaths(client, (rows ?? []).map((r) => r.logo_path));
+  const urls = await signPaths((rows ?? []).map((r) => r.logo_path));
   return (rows ?? []).map((r) => ({ ...r, logo_src: r.logo_path ? (urls.get(r.logo_path) ?? "") : "" }));
 });
 
